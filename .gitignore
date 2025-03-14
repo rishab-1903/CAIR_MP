@@ -1,1 +1,2 @@
-concise-reserve-449207-p2-3a505c75d108.json
+*.json
+!captions.json  # Keep other JSON files if needed

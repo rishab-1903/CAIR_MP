@@ -13,7 +13,7 @@ import main as b  # Import BLIP-based captioning function
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ✅ Static API Key
-API_KEY_PATH = "concise-reserve-449207-p2-3a505c75d108.json"
+API_KEY_PATH = "polar-cyclist-448811-p8-461e6fec6938.json"
 
 # ✅ Load Google Drive API credentials
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
