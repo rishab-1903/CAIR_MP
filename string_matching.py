@@ -19,15 +19,16 @@ def initialize_captions(input_folder_id):
 
     try:
         # ✅ Fetch and store captions from Google Drive
-        num_captions, image_links = store_caption.fetch_and_store_captions(input_folder_id)
+        num_captions = store_caption.fetch_and_store_captions(input_folder_id)
 
-        # ✅ Load stored captions from JSON
+        # ✅ Load stored captions & image links from JSON
         with open("captions.json", "r") as f:
-            data = json.load(f)  # Load the full JSON object
+            data = json.load(f)  
 
-        # ✅ Extract folder_id and images dictionary
+        # ✅ Extract folder_id, captions, and image links from JSON
         folder_id = data.get("folder_id", "")
-        captions = data.get("images", {})  # Ensure we only extract captions
+        captions = data.get("images", {})  
+        image_links = data.get("image_links", {})  
 
         return f"✅ {num_captions} captions stored! Ready for searching."
 
@@ -60,19 +61,21 @@ def search_captions(query):
 
     return "\n\n".join(results)  
 
-def speech_to_text():
-    """Convert speech to text and translate to English."""
+def speech_to_text(selected_language):
+    """Convert speech to text and translate to English based on selected language."""
     recognizer = sr.Recognizer()
+    lang_code = "hi-IN" if selected_language == "Hindi" else "te-IN"
+
     with sr.Microphone() as source:
-        print("🎙 Speak in Telugu or Hindi... (Auto-stop enabled)")
+        print(f"🎙 Speak in {selected_language} ({lang_code})... (Auto-stop enabled)")
         recognizer.adjust_for_ambient_noise(source)
 
         try:
-            # Stop listening automatically after 5 seconds of silence or continuous speech
+            # Stop listening after 5 seconds of silence or continuous speech
             audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
-            
-            # Convert speech to text
-            text = recognizer.recognize_google(audio, language="hi-IN")  # Change "te-IN" for Telugu
+
+            # Convert speech to text using the selected language
+            text = recognizer.recognize_google(audio, language=lang_code)
             print(f"Recognized Text: {text}")
 
             # Translate to English
@@ -81,13 +84,11 @@ def speech_to_text():
             return translated_text
 
         except sr.WaitTimeoutError:
-            print("⏳ No speech detected. Try again.")
-            return "No speech detected, please try again."
+            return "⏳ No speech detected. Try again."
 
         except Exception as e:
-            print(f"❌ Error: {e}")
-            return "Could not process audio"
-        
+            return f"❌ Error: {e}"
+
 # ✅ Gradio UI
 with gr.Blocks() as app:
     gr.Markdown("# 📷 Context Aware Image Retrieval System - Voice & Text Search")
@@ -103,13 +104,14 @@ with gr.Blocks() as app:
     # ✅ Section 2: Search Captions
     with gr.Row():
         query_input = gr.Textbox(label="🔍 Enter search query")
+        language_selector = gr.Dropdown(["Hindi", "Telugu"], label="🎙 Select Speech Language")
         voice_button = gr.Button("🎙 Speak")
 
     search_button = gr.Button("Search")
     search_output = gr.Markdown()
 
-    # ✅ Voice Search - Convert Speech to Text
-    voice_button.click(speech_to_text, outputs=[query_input])
+    # ✅ Voice Search - Convert Speech to Text based on Selected Language
+    voice_button.click(speech_to_text, inputs=[language_selector], outputs=[query_input])
 
     # ✅ Perform Search
     search_button.click(search_captions, inputs=[query_input], outputs=[search_output])

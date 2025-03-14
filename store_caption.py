@@ -60,20 +60,23 @@ def fetch_and_store_captions(folder_id):
     logging.info("Fetching image list from Drive...")
     images = list_images_in_folder(folder_id)
 
-    # ✅ Load existing captions
+    # ✅ Load existing captions.json
     captions_data = load_captions()
 
     # ✅ Check if the folder has changed
     if captions_data["folder_id"] != folder_id:
         logging.info("New folder detected. Resetting captions.json.")
-        captions_data = {"folder_id": folder_id, "images": {}}
+        captions_data = {"folder_id": folder_id, "images": {}, "image_links": {}}
 
     existing_images = captions_data["images"]
+    existing_links = captions_data.get("image_links", {})
     new_captions = {}
+    new_image_links = {}
 
     for image in images:
         file_id = image['id']
         file_name = image['name']
+        image_link = f"https://drive.google.com/file/d/{file_id}/view"
 
         if file_name in existing_images:
             logging.info(f"Skipping {file_name} (already processed).")
@@ -86,8 +89,12 @@ def fetch_and_store_captions(folder_id):
 
             # ✅ Generate caption using BLIP
             caption = b.generate_caption(np_image)
+
+            # ✅ Store the caption and image link
             captions_data["images"][file_name] = caption
+            captions_data["image_links"][file_name] = image_link
             new_captions[file_name] = caption
+            new_image_links[file_name] = image_link
 
             logging.info(f"Caption generated for {file_name}: {caption}")
 
@@ -98,4 +105,4 @@ def fetch_and_store_captions(folder_id):
     save_captions(captions_data)
     logging.info("Updated captions.json.")
 
-    return len(new_captions), {img: f"https://drive.google.com/file/d/{images[i]['id']}/view" for i, img in enumerate(new_captions)}
+    return len(new_captions), new_image_links  # ✅ Return updated image links
