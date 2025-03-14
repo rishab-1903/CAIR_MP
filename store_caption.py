@@ -56,7 +56,7 @@ def fetch_image_from_drive(file_id):
     return np.array(pil_image)
 
 def fetch_and_store_captions(folder_id):
-    """Fetch captions for new images in a folder and update captions.json."""
+    """Fetch captions for new images in a folder, update captions.json, and remove missing images."""
     logging.info("Fetching image list from Drive...")
     images = list_images_in_folder(folder_id)
 
@@ -73,6 +73,17 @@ def fetch_and_store_captions(folder_id):
     new_captions = {}
     new_image_links = {}
 
+    # ✅ Convert Drive image list to a set for easy comparison
+    current_image_names = {image['name'] for image in images}
+
+    # ✅ Remove missing images from captions.json
+    removed_images = [img for img in existing_images if img not in current_image_names]
+    for img in removed_images:
+        del captions_data["images"][img]
+        del captions_data["image_links"][img]
+        logging.info(f"Removed {img} from captions.json (image no longer in Drive).")
+
+    # ✅ Process new images
     for image in images:
         file_id = image['id']
         file_name = image['name']
