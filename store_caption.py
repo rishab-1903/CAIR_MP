@@ -1,3 +1,6 @@
+import json
+import os
+import logging
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
@@ -5,19 +8,31 @@ from PIL import Image
 import numpy as np
 import io
 import main as b  # Import BLIP-based captioning function
-import json
-import logging
 
 # ✅ Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# ✅ Statically configure the API key (replace with your local file path)
+# ✅ Static API Key
 API_KEY_PATH = "concise-reserve-449207-p2-3a505c75d108.json"
 
-# ✅ Load Google Drive API credentials (no UI upload needed)
+# ✅ Load Google Drive API credentials
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 credentials = service_account.Credentials.from_service_account_file(API_KEY_PATH, scopes=SCOPES)
 drive_service = build('drive', 'v3', credentials=credentials)
+
+CAPTIONS_FILE = "captions.json"
+
+def load_captions():
+    """Load existing captions.json if available."""
+    if os.path.exists(CAPTIONS_FILE):
+        with open(CAPTIONS_FILE, "r") as f:
+            return json.load(f)
+    return {"folder_id": None, "images": {}}
+
+def save_captions(data):
+    """Save captions.json."""
+    with open(CAPTIONS_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
 def list_images_in_folder(folder_id):
     """List all image files in a Google Drive folder."""
@@ -30,45 +45,57 @@ def fetch_image_from_drive(file_id):
     request = drive_service.files().get_media(fileId=file_id)
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
-
     done = False
     while not done:
         status, done = downloader.next_chunk()
 
-    logging.info(f"Image downloaded in memory from Drive: {file_id}")
+    logging.info(f"Image downloaded from Drive: {file_id}")
     fh.seek(0)
-    
-    pil_image = Image.open(fh)  # Convert to PIL Image
-    return np.array(pil_image)  # Convert to NumPy array before returning
+
+    pil_image = Image.open(fh)
+    return np.array(pil_image)
 
 def fetch_and_store_captions(folder_id):
-    """Fetch captions for images in a folder and save them to captions.json."""
+    """Fetch captions for new images in a folder and update captions.json."""
     logging.info("Fetching image list from Drive...")
     images = list_images_in_folder(folder_id)
 
-    captions = {}
+    # ✅ Load existing captions
+    captions_data = load_captions()
+
+    # ✅ Check if the folder has changed
+    if captions_data["folder_id"] != folder_id:
+        logging.info("New folder detected. Resetting captions.json.")
+        captions_data = {"folder_id": folder_id, "images": {}}
+
+    existing_images = captions_data["images"]
+    new_captions = {}
 
     for image in images:
-        try:
-            file_id = image['id']
-            file_name = image['name']
+        file_id = image['id']
+        file_name = image['name']
 
-            # ✅ Fetch the image as a NumPy array
-            logging.info(f"Processing image: {file_name}")
+        if file_name in existing_images:
+            logging.info(f"Skipping {file_name} (already processed).")
+            continue
+
+        try:
+            # ✅ Fetch the image
+            logging.info(f"Processing new image: {file_name}")
             np_image = fetch_image_from_drive(file_id)
 
-            # ✅ Generate the caption using BLIP model
-            caption = b.generate_caption(np_image)  # Pass NumPy array
-            captions[file_name] = caption
+            # ✅ Generate caption using BLIP
+            caption = b.generate_caption(np_image)
+            captions_data["images"][file_name] = caption
+            new_captions[file_name] = caption
 
             logging.info(f"Caption generated for {file_name}: {caption}")
 
         except Exception as e:
-            logging.error(f"Error processing image {file_name}: {e}")
+            logging.error(f"Error processing {file_name}: {e}")
 
-    # ✅ Save captions to captions.json
-    with open("captions.json", "w") as f:
-        json.dump(captions, f, indent=4)
+    # ✅ Save updated captions.json
+    save_captions(captions_data)
+    logging.info("Updated captions.json.")
 
-    logging.info("Captions saved to captions.json.")
-    return len(captions), {img["name"]: f"https://drive.google.com/file/d/{img['id']}/view" for img in images}
+    return len(new_captions), {img: f"https://drive.google.com/file/d/{images[i]['id']}/view" for i, img in enumerate(new_captions)}
