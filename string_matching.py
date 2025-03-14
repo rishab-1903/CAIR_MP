@@ -8,21 +8,26 @@ from deep_translator import GoogleTranslator
 # ✅ Load BERT model for similarity search
 bert_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# ✅ Global storage for captions
+# ✅ Global storage for captions and folder ID
 captions = {}
 image_links = {}
+folder_id = ""
 
-def initialize_captions(folder_id):
-    """Fetch captions once and store in JSON file."""
-    global captions, image_links
+def initialize_captions(input_folder_id):
+    """Fetch captions and store in JSON file."""
+    global captions, image_links, folder_id
 
     try:
-        # ✅ Call store_caption.py
-        num_captions, image_links = store_caption.fetch_and_store_captions(folder_id)
+        # ✅ Fetch and store captions from Google Drive
+        num_captions, image_links = store_caption.fetch_and_store_captions(input_folder_id)
 
-        # ✅ Load stored captions
+        # ✅ Load stored captions from JSON
         with open("captions.json", "r") as f:
-            captions = json.load(f)
+            data = json.load(f)  # Load the full JSON object
+
+        # ✅ Extract folder_id and images dictionary
+        folder_id = data.get("folder_id", "")
+        captions = data.get("images", {})  # Ensure we only extract captions
 
         return f"✅ {num_captions} captions stored! Ready for searching."
 

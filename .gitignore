@@ -1,2 +1,2 @@
 *.json
-!captions.json  # Keep other JSON files if needed
+!captions.json
