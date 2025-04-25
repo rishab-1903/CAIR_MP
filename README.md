@@ -43,7 +43,7 @@ cd context-aware-image-retrieval
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate
 ```
 
 ### 3. Install Required Packages
@@ -52,13 +52,9 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-> Python 3.8+ is recommended.
-
----
-
 ## 🔐 Configuration: API Key
 
-This project requires a key JSON file (e.g., Firebase or Google Cloud service credentials).
+This project requires a key JSON file (e.g., Google Cloud service credentials).
 
 ### To Set Up:
 
@@ -111,14 +107,9 @@ This will:
 
 ### 3. Launch the App
 
-#### For Flask-based apps:
+#### For Gradio based apps:
 ```bash
-python main.py
-```
-
-#### For Streamlit-based apps:
-```bash
-streamlit run main.py
+python string_matching.py
 ```
 
 ### 4. Perform Search
@@ -131,7 +122,7 @@ Enter a text query (e.g., `"a cat sitting near a window"`)
 ## 🧠 Model & Retrieval Details
 
 - **Encoder**: CNN (e.g., ResNet or Inception) to extract image features
-- **Decoder**: RNN/Transformer model trained to produce captions
+- **Decoder**: RNN/Transformer model trained to produce captions  <- Combined this features using Salesforce BLIP (pretrained)
 - **Retrieval Engine**:
   - Combines syntactic (TF-IDF, Levenshtein) and semantic (SBERT) methods
   - Optimized for both precision and performance
@@ -154,7 +145,7 @@ To test the system with new data:
 1. Add images to `images/`
 2. Re-run:
    ```bash
-   python store_caption.py
+   python string_matching.py
    ```
 3. Launch the app and query as needed
 
