@@ -161,5 +161,5 @@ To test the system with new data:
 
 ## 📃 License
 
-MIT License © 2025 YourName  
+MIT License © 2025 Rishab Gupta
 Free to use, modify, and distribute with attribution.
